@@ -171,7 +171,7 @@ assign FT_SPI_SCK = 1'b0;
 assign FT_SPI_MOSI = 1'b1;
 
 // ------------------------------------------------------------------ MCU link v2
-wire [39:0] sw;                    // SYS switches, switch n = sw[n*8 +: 8]
+wire [47:0] sw;                    // SYS switches, switch n = sw[n*8 +: 8]
 wire [5:0] btns;
 wire mcu_busy;
 wire dvi_only;
@@ -182,20 +182,95 @@ wire [23:0] matrix_cmd;
 // HID: PS/2 set 2 bytes and the joysticks
 wire [7:0] ps2_code;
 wire ps2_kind, ps2_wr;
-reg  ps2_upd_tgl = 1'b0;
-always @(posedge clk_host)
-	if (ps2_wr && !ps2_kind) ps2_upd_tgl <= ~ps2_upd_tgl;
-wire [7:0] kb_scancode = ps2_code;
-wire kb_scancode_upd = ps2_upd_tgl;
+
+// The firmware sends every byte of a key (E0 / F0 prefixes, typematic) as a
+// burst, one 25 MHz strobe per byte.  Queue the set-2 bytes and pop them in
+// clk_sys, so the code and the strobe change together (no CDC race).
+wire [7:0] ps2_dout;
+wire       ps2_empty, ps2_full;
+reg        ps2_rd = 1'b0;
+reg  [1:0] ps2_state = 2'd0;
+reg  [7:0] kb_scancode_r = 8'd0;
+reg        kb_upd_tgl = 1'b0;
+
+kg_async_fifo #(.DW(8), .AW(4)) ps2_fifo (
+	.wclk   (clk_host),
+	.wreset (areset),
+	.wr     (ps2_wr && !ps2_kind),
+	.din    (ps2_code),
+	.full   (ps2_full),
+	.rclk   (clk_sys),
+	.rreset (areset),
+	.rd     (ps2_rd),
+	.dout   (ps2_dout),
+	.empty  (ps2_empty),
+	.rcount ()
+);
+
+always @(posedge clk_sys) begin
+	ps2_rd <= 1'b0;
+	if (areset) begin
+		ps2_state <= 2'd0;
+		kb_scancode_r <= 8'd0;
+		kb_upd_tgl <= 1'b0;
+	end
+	else begin
+		case (ps2_state)
+			2'd0: if (!ps2_empty) begin
+				ps2_rd <= 1'b1;
+				ps2_state <= 2'd1;
+			end
+			2'd1: ps2_state <= 2'd2;
+			2'd2: begin
+				kb_scancode_r <= ps2_dout;
+				kb_upd_tgl <= ~kb_upd_tgl;
+				ps2_state <= 2'd0;
+			end
+		endcase
+	end
+end
+
+wire [7:0] kb_scancode = kb_scancode_r;
+wire kb_scancode_upd = kb_upd_tgl;
 wire [15:0] joy_l16, joy_r16;
 wire [12:0] joy_l = joy_l16[12:0];
 wire [12:0] joy_r = joy_r16[12:0];
 
-// LOAD: the file loader is not connected yet; keep the bus idle
+// LOAD / disk: the MCU file mounter and the internal 1050.
 wire [1:0] ld_kind;
 wire [7:0] ld_slot, ld_data;
 wire [31:0] ld_size, ld_addr;
 wire ld_start, ld_active, ld_end, ld_wr;
+
+wire [7:0]  sdc_img_mounted;
+wire [63:0] sdc_img_size;
+wire [7:0]  sdc_rd;
+wire [31:0] sdc_sector;
+wire        sdc_busy, sdc_done, sdc_error;
+wire [2:0]  sdc_slot;
+wire        sdc_byte_strobe;
+wire [8:0]  sdc_byte_addr;
+wire [7:0]  sdc_byte_in_data;
+
+wire        ld_req;
+wire [24:0] ld_addr_sram;
+wire [7:0]  ld_data_sram;
+wire        atr_ld_req;
+wire [24:0] atr_ld_addr;
+wire [7:0]  atr_ld_data;
+wire        ld_loading;
+wire [15:0] atr_ssize;
+wire [31:0] atr_scount;
+wire        atr_ready;
+
+wire        sio_command, sio_rxd, sio_txd, sio_clock, sio_motor;
+wire        dsk_req;
+wire [24:0] dsk_addr;
+wire [7:0]  dsk_data;
+wire        dsk_ack;
+wire        sio_dsk_req;
+wire [24:0] sio_dsk_addr;
+wire        sio_ready;
 
 // OSD: the bitmap of kg_l2_osd, drawn by kg_l2_osd_overlay in clk_vid
 wire osd_wr, osd_en, osd_zoom;
@@ -217,10 +292,11 @@ assign MCU_IO[3:2] = 2'bzz;
 
 kg_mcu2 #(
 	.CAPS(16'h0000),
-	.SW_N(5),
-	.SW_INIT(40'h0000000000),
+	.SW_N(6),
+	.SW_INIT(48'h000000000000),
 	.CS_FILTER(3),
 	.ENABLE_OSD(1),
+	.ENABLE_IMG(1),
 	.ENABLE_FT(0),
 	.ENABLE_SD2(0),
 	.ENABLE_AUX(1)
@@ -280,10 +356,10 @@ kg_mcu2 #(
 	.OSD_FG			(osd_fg), .OSD_BG(osd_bg), .OSD_ALPHA(osd_alpha), .OSD_PX(osd_px), .OSD_PY(osd_py),
 	.OSD_PW			(osd_pw), .OSD_PH(osd_ph), .OSD_PLACE(osd_place), .OSD_ZOOM(osd_zoom),
 
-	.SDC_IMG_MOUNTED(), .SDC_IMG_SIZE(),
-	.SDC_RD			(8'd0), .SDC_WR(8'd0), .SDC_SECTOR(32'd0),
-	.SDC_BUSY		(), .SDC_DONE(), .SDC_ERROR(), .SDC_SLOT(),
-	.SDC_BYTE_IN_STROBE(), .SDC_BYTE_ADDR(), .SDC_BYTE_IN_DATA(), .SDC_BYTE_OUT_DATA(8'd0),
+	.SDC_IMG_MOUNTED(sdc_img_mounted), .SDC_IMG_SIZE(sdc_img_size),
+	.SDC_RD			(sdc_rd), .SDC_WR(8'd0), .SDC_SECTOR(sdc_sector),
+	.SDC_BUSY		(sdc_busy), .SDC_DONE(sdc_done), .SDC_ERROR(sdc_error), .SDC_SLOT(sdc_slot),
+	.SDC_BYTE_IN_STROBE(sdc_byte_strobe), .SDC_BYTE_ADDR(sdc_byte_addr), .SDC_BYTE_IN_DATA(sdc_byte_in_data), .SDC_BYTE_OUT_DATA(8'd0),
 	.IMG_WP			(), .IMG_PHYS_WR(), .IMG_PHYS(), .IMG_FLUSH(),
 	.FDD_CHNG_WR	(), .FDD_CHNG(), .FDD_CHNG_REQ(1'b0), .FDD_CHNG_DS(2'd0),
 	.IMG_ACTIVE		(),
@@ -304,7 +380,7 @@ kg_mcu2 #(
 );
 
 // ------------------------------------------------------------------ OSD switches
-reg [39:0] sw_s1 = 40'd0, sw_s2 = 40'd0, sw_v = 40'd0;
+reg [47:0] sw_s1 = 48'd0, sw_s2 = 48'd0, sw_v = 48'd0;
 always @(posedge clk_sys) begin
 	sw_s1 <= sw;
 	sw_s2 <= sw_s1;
@@ -344,11 +420,90 @@ always @(posedge clk_sys) begin
 end
 wire sw_reset = |sw_reset_cnt;
 
-wire        ld_req = 1'b0;
-wire [24:0] ld_addr_sram = 25'd0;
-wire [7:0]  ld_data_sram = 8'd0;
-wire        ld_loading = 1'b0;
-wire machine_reset = areset | sw_reset | ld_loading;
+reg sw5_d = 1'b0;
+reg [20:0] cold_reset_cnt = 21'd0;
+always @(posedge clk_sys) begin
+	sw5_d <= sw_v[5];
+	if (sw_v[5] && !sw5_d)
+		cold_reset_cnt <= 21'h1FFFFF;
+	else if (cold_reset_cnt != 21'd0)
+		cold_reset_cnt <= cold_reset_cnt - 21'd1;
+end
+wire cold_reset = |cold_reset_cnt;
+
+wire any_reset   = areset | sw_reset | cold_reset | ld_loading;
+wire power_reset = areset | cold_reset | ld_loading;
+
+// ------------------------------------------------------------------ ATR image loader
+atari_atr_loader atr_loader (
+	.clk_host       (clk_host),
+	.clk            (clk_sys),
+	.reset_host     (areset),
+	.img_mounted    (sdc_img_mounted),
+	.img_size       (sdc_img_size),
+	.sdc_rd         (sdc_rd),
+	.sdc_sector     (sdc_sector),
+	.sdc_busy       (sdc_busy),
+	.sdc_done       (sdc_done),
+	.sdc_error      (sdc_error),
+	.sdc_slot       (sdc_slot),
+	.sdc_byte_strobe(sdc_byte_strobe),
+	.sdc_byte_addr  (sdc_byte_addr),
+	.sdc_byte_in_data(sdc_byte_in_data),
+	.ld_req         (atr_ld_req),
+	.ld_addr        (atr_ld_addr),
+	.ld_data        (atr_ld_data),
+	.atr_ssize      (atr_ssize),
+	.atr_scount     (atr_scount),
+	.atr_ready      (atr_ready),
+	.loading        (ld_loading),
+	.xex_mode       (),
+	.dbg_nsec       (),
+	.dbg_waddr      ()
+);
+
+// Raw .xex uses the same synthetic-ATR path as MiniG/Go (no FPGA DMA before
+// the OS coldstart: it clears RAM from $0008 to the top).
+assign ld_req       = atr_ld_req;
+assign ld_addr_sram = atr_ld_addr;
+assign ld_data_sram = atr_ld_data;
+
+assign dsk_req  = sio_dsk_req;
+assign dsk_addr = sio_dsk_addr;
+assign sio_ready = atr_ready;
+assign sio_ssize = atr_ssize;
+assign sio_scount= atr_scount;
+
+// ------------------------------------------------------------------ 1050 SIO disk
+atari_sio_disk sio_disk (
+	.clk            (clk_sys),
+	.reset          (any_reset),
+	.atr_ssize      (sio_ssize),
+	.atr_scount     (sio_scount),
+	.atr_ready      (sio_ready),
+	.sio_command    (sio_command),
+	.sio_txd        (sio_txd),
+	.sio_clock      (sio_clock),
+	.sio_rxd        (sio_rxd),
+	.dsk_req        (sio_dsk_req),
+	.dsk_addr       (sio_dsk_addr),
+	.dsk_data       (dsk_data),
+	.dsk_ack        (dsk_ack),
+	.dbg_cmd_cnt    (),
+	.dbg_last_code  (),
+	.dbg_ack_cnt    (),
+	.dbg_tx_cnt     (),
+	.dbg_rx_byte    (),
+	.dbg_cmd_edges  (),
+	.dbg_bad_frames (),
+	.dbg_flags      (),
+	.dbg_last_frame (),
+	.dbg_data8      (),
+	.dbg_sum        (),
+	.dbg_sector     (),
+	.dbg_code       (),
+	.dbg_base       ()
+);
 
 // ------------------------------------------------------------------ machine
 wire [23:0] vid_rgb, osd_rgb;
@@ -359,7 +514,8 @@ wire signed [17:0] aud_l, aud_r;
 atari800_machine machine (
 	.clk            (clk_sys),
 	.clk_vid        (clk_sys),
-	.reset          (machine_reset),
+	.reset          (any_reset),
+	.power_reset    (power_reset),
 	.reset_host     (areset),
 	.pause          (1'b0),
 	.kb_scancode    (kb_scancode),
@@ -381,6 +537,16 @@ atari800_machine machine (
 	.de             (vid_de),
 	.audio_l        (aud_l),
 	.audio_r        (aud_r),
+	.sio_command    (sio_command),
+	.sio_rxd        (sio_rxd),
+	.sio_txd        (sio_txd),
+	.sio_clock      (sio_clock),
+	.sio_motor      (sio_motor),
+	.dsk_req        (dsk_req),
+	.dsk_addr       (dsk_addr),
+	.dsk_data       (dsk_data),
+	.dsk_ack        (dsk_ack),
+	.dbg_defer      (),
 	.MA             (MA),
 	.MD             (MD),
 	.MWR_N          (MWR_N),

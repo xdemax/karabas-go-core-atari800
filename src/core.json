@@ -12,6 +12,10 @@
             "bitstream": "karabas_go.bin",
             "link": 2
         },
+        "mini": {
+            "bitstream": "karabas_mini.bin",
+            "link": 2
+        },
         "minig": {
             "bitstream": "karabas_minig.bin",
             "link": 2

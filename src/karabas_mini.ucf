@@ -1,5 +1,6 @@
-# Karabas-Mini rev.G pinout
-# Backward-incompatible with lower Karabas-Mini revisions (added I2S DAC, ESP32 I2S, rerouted some CLK signals, removed MIDI_RESET, MIDI_CLK, ESP_RESET, ESP_BOOT)
+# Karabas-Mini rev A-F pinout for this core: sigma-delta audio on AUDIO_L/AUDIO_R,
+# MCU_SCK is not on a clock pin.  Shared SRAM/HDMI/MCU/joystick pins follow the
+# Mini pinout; FT812/MIDI/ESP pins are unused by this core.
 
 # Clocks
 NET "CLK_50MHZ"        LOC="T8" | IOSTANDARD = LVTTL;
@@ -243,9 +244,9 @@ TIMESPEC "TS_HOST_SPI" = FROM "TG_HOST" TO "TG_SPI" 31.25 ns DATAPATHONLY;
 # the machine and the host clock cross through toggles and two flip-flops
 TIMESPEC "TS_VID_HOST" = FROM "TG_VID" TO "TG_HOST" 31 ns DATAPATHONLY;
 TIMESPEC "TS_HOST_VID" = FROM "TG_HOST" TO "TG_VID" 31 ns DATAPATHONLY;
-# I2S: DIN / WS launch on the pixel clock, the DAC samples on the rising (inverted) BCK
-TIMEGRP "TG_DAC_OUT" = PADS("DAC_DAT") PADS("DAC_WS");
-TIMESPEC "TS_DAC_OUT" = FROM FFS TO "TG_DAC_OUT" 20 ns DATAPATHONLY;
+# Sigma-delta audio: the 48 kHz sample is held and the DAC toggles on clk_sys.
+TIMEGRP "TG_AUDIO_OUT" = PADS("AUDIO_L") PADS("AUDIO_R");
+TIMESPEC "TS_AUDIO_OUT" = FROM FFS TO "TG_AUDIO_OUT" 20 ns DATAPATHONLY;
 # SRAM IS61WV20488 (tAA 10 ns): address on a clk_vid edge, data sampled on the next edge (35 ns)
 TIMEGRP "TG_SRAM_IN" = PADS("MD<*>");
 TIMEGRP "TG_SRAM_OUT" = "TG_SRAM_IN" PADS("MA<*>") PADS("MRD_N<*>") PADS("MWR_N<*>") PADS("MD<*>");

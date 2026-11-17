@@ -4,13 +4,20 @@
 
 | Файл | md5 | Что |
 |---|---|---|
-| `src/atari800.kg` | `68d4f3a912e052b951f9b11cda620607` | Go + MiniG, один `.kg` |
+| `src/atari800.kg` | `08ee3e45f1c13fab181bbc3cf61c3187` | Go + Mini rev A-F + MiniG |
 | `src/karabas_go.bin` | `200fbea4af857158491986e363eab880` | Go, LUT 53%, timing 0 |
-| `src/karabas_minig.bin` | `6ceb9961c3dd2e2a3be19fb61722cb12` | MiniG, LUT 63%, timing 0 |
+| `src/karabas_mini.bin` | `8c15fb331fa3831c19177d9e97c6ccad` | Mini rev A-F, LUT 61%, timing 0 |
+| `src/karabas_minig.bin` | `6ceb9961c3dd2e2a3be19fb61722cb12` | MiniG (rev G), LUT 63%, timing 0 |
 
-В `.kg` два битстрима: `go` (id 2, size `0x0B4A72`) и `minig`
-(id 8, size `0x0B418E`). Firmware выбирает нужный по `HW_ID`; нужна
-прошивка 26111315+ (link v2).
+В `.kg` три битстрима:
+
+| Board | id | size |
+|---|---:|---:|
+| `go` | 2 | `0x0B4A72` |
+| `mini` (rev A-F) | 4 | `0x0B423E` |
+| `minig` (rev G) | 8 | `0x0B418E` |
+
+Firmware выбирает нужный по `HW_ID`; нужна прошивка 26111315+ (link v2).
 
 ## Последняя подтверждённая на железе
 
@@ -27,8 +34,8 @@
 GitHub Releases: https://github.com/xdemax/karabas-go-core-atari800/releases
 
 Релиз публикуется одним файлом `atari800.kg` + md5 и short notes
-(Fix / Other / Build). Пока не опубликован: сначала проверить MiniG
-`6ceb9961` на вертикаль/клавиатуру.
+(Fix / Other / Build). Пока не опубликован: сначала проверить Mini rev G
+(`minig`, `6ceb9961`) на вертикаль/клавиатуру.
 
 ## Артефакты
 

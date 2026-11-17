@@ -7,9 +7,11 @@ ISE 14.7, `PART = xc6slx25-ftg256-2`.
 ```sh
 cd src
 make go               # Karabas Go: karabas_go.bin
+make mini             # Karabas Mini rev A-F: karabas_mini.bin
 make minig            # Karabas Mini G: karabas_minig.bin
-make all              # оба + atari800.kg
+make all              # все три + atari800.kg
 make go-report        # LUT / slices / RAMB / timing для Go
+make mini-report      # то же для Mini
 make minig-report     # то же для MiniG
 make minig-xst        # только синтез
 make minig-impl       # ngdbuild + map + par + bitgen
@@ -23,7 +25,8 @@ make minig FAST=1
 ```
 
 `atari800.kg` собирается `tools/make_core.py` из `src/core.json` и
-битстримов; в нём два образа (`go`, `minig`), firmware выбирает по `HW_ID`.
+битстримов; в нём три образа (`go`, `mini`, `minig`), firmware выбирает
+нужный по `HW_ID`.
 
 ## 2. Заливка `.kg` на SD
 

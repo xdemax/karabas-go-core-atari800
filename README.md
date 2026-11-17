@@ -1,21 +1,21 @@
-# Atari 800XL для Karabas Go / Mini G
+# Atari 800XL для Karabas Go / Mini / Mini G
 
-Порт ядра Atari 800XL с MiSTer (`a8core` Марка Уотсона) на Karabas Go и Mini G
+Порт ядра Atari 800XL с MiSTer (`a8core` Марка Уотсона) на Karabas Go, Mini rev A-F и Mini G (rev G)
 (XC6SLX25-2 FTG256, 4 МБ SRAM). Машина одна; отличаются верхние обёртки, PLL,
-видео/аудио-обвязка и UCF. Один `atari800.kg` содержит битстримы `go` и
-`minig`; firmware выбирает нужный по `HW_ID`.
+видео/аудио-обвязка и UCF. Один `atari800.kg` содержит битстримы `go`, `mini` и `minig`;
+firmware выбирает нужный по `HW_ID`.
 
 ## Статус (2026-11-17, build 26111730)
 
-- **Mini G** — основной целевой стенд. Работают: ATR в Disk-слоте, прямой
+- **Mini G (rev G, `minig`)** — основной целевой стенд. Работают: ATR в Disk-слоте, прямой
   `.xex` в Disk-слоте, видео 720×576 PAL, клавиатура, джойстики, OSD,
   Altirra OS/BASIC, картриджи, SIO 1050.
   Проверено на железе: `Pong.xex`, `Miner 2049er.xex`, `GAMES002.ATR`
   (сборка до вертикали/FIFO; новая сборка проверяется).
 - **Go** — собирается из того же RTL; битстрим включён в `.kg`, на железе
   не проверялся (платы нет).
-- **Mini rev A-F** — исходники/конфиги в дереве, в этом релизе не
-  собираются и не проверялись.
+- **Mini rev A-F (`mini`)** — собирается из того же RTL (ATR/XEX, видео, клавиатура,
+  sigma-delta audio); на железе не проверялся.
 - **XEX** — synthetic-ATR + 6502-загрузчик, запускается после coldstart,
   BASIC выключается через `PORTB=$BF`. FPGA-DMA до boot не используется:
   Altirra OS coldstart стирает RAM (`$EF1F`) — см. `doc/XEX_ATR.md`.
@@ -37,8 +37,8 @@
 | Память | 4 МБ SRAM вместо SDRAM: `low_memory=4`, RAM до 1088K, картридж 1 МБ |
 | OS/BASIC | Altirra OS и Altirra BASIC, встроены в BRAM (`internal_rom=1`) |
 | Видео | `atari_video.v`: 456 source px → 720×576 @ ~50 Гц, 28.571 МГц |
-| HDMI | `kg_hdmi_ft` (link v2), 48 кГц audio |
-| Звук | POKEY/GTIA → DC-blocker → 48 кГц → PCM5102 I2S + HDMI |
+| HDMI | `atari_hdmi` (Go/Mini/MiniG), 48 кГц audio |
+| Звук | POKEY/GTIA → DC-blocker → 48 кГц → PCM5102 (Go/MiniG) / sigma-delta (Mini) + HDMI |
 | Клавиатура | MCU PS/2 set 2 → async FIFO → `ps2_to_atari800` (direct mode) |
 | Джойстики | Karabas `up/down/left/right/A/B/C` → MiSTer `FRLDU` |
 | Диск | `atari_atr_loader` + `atari_sio_disk` (ATR); `xex_prefix_rom` (XEX) |
@@ -65,9 +65,11 @@ ISE 14.7:
 ```sh
 cd src
 make go               # Karabas Go
-make minig            # Karabas Mini G
-make all              # оба битстрима + один atari800.kg
-make minig-report     # LUT / slices / RAMB / timing
+make mini             # Karabas Mini rev A-F
+make minig            # Karabas Mini G (rev G)
+make all              # все три + один atari800.kg
+make mini-report      # LUT / slices / RAMB / timing для Mini
+make minig-report     # то же для MiniG
 make minig FAST=1     # быстрая тестовая: без trce, ниже effort
 ```
 

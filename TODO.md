@@ -2,8 +2,8 @@
 
 ## Сейчас
 
-- [ ] Прошить `08ee3e45` (build 26111730) на Mini rev G (`minig`):
-      вертикаль (48/48), клавиатура в memo pad/игре, Miner/Pong/ATR.
+- [x] Прошить `08ee3e45` на Mini rev G (`minig`): вертикаль, клавиатура,
+      Miner/Pong/ATR — всё нормально.
 - [ ] Проверить Mini rev A-F (`mini`) и Go, когда будут платы.
 - [ ] Проверить Montezuma (Parker, `$8000-$BFFF`) и River Raid
       (`$9FF0-$BFFF`) — должны работать с `PORTB=$BF`.
@@ -35,5 +35,5 @@
 ## Релиз
 
 - [x] Собрать финальный `make all` (Go + Mini + MiniG), timing 0.
-- [ ] Записать `.kg` на SD, проверить на Mini G.
-- [ ] Опубликовать GitHub Release с одним `atari800.kg` и md5.
+- [x] Записать `.kg` на SD, проверить на Mini rev G — всё нормально.
+- [x] Опубликовать GitHub Release `v26111730` с одним `atari800.kg` и md5.

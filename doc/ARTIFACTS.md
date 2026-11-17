@@ -31,11 +31,11 @@ Firmware выбирает нужный по `HW_ID`; нужна прошивка
 
 ## Релизы
 
-GitHub Releases: https://github.com/xdemax/karabas-go-core-atari800/releases
+**v26111730** — https://github.com/xdemax/karabas-go-core-atari800/releases/tag/v26111730
 
-Релиз публикуется одним файлом `atari800.kg` + md5 и short notes
-(Fix / Other / Build). Пока не опубликован: сначала проверить Mini rev G
-(`minig`, `6ceb9961`) на вертикаль/клавиатуру.
+Ассет: `atari800.kg` (2,217,046 байт, md5 `08ee3e45f1c13fab181bbc3cf61c3187`).
+Проверено на Mini rev G: Pong, Miner 2049er, GAMES002.ATR, вертикаль и
+клавиатура. Mini rev A-F и Go собраны, но на железе не проверялись.
 
 ## Артефакты
 

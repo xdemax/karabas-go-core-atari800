@@ -1,0 +1,56 @@
+Karabas Go / Mini G — Atari 800XL core
+=======================================
+
+This repository is a port of the Atari 800XL core to the Karabas Go / Mini G
+boards.  It is not an official Atari or MiSTer release.
+
+Main license for the Karabas port files (top levels, video, SRAM controller,
+ATR/XEX loaders, tools, testbenches):
+  GNU General Public License v3.0 — see LICENSE.
+
+Original Atari 800XL core (`src/a8core/`, `src/components/`)
+-----------------------------------------------------------
+(c) 2013 Mark Watson
+I am happy for anyone to use this for non-commercial use.
+If my VHDL files are used commercially or otherwise sold, please contact me
+for explicit permission at scrameta (gmail).
+This applies for source and binary form and derived works.
+
+The `src/a8core/` files keep their original headers.  They are NOT covered by
+the GPL-3 LICENSE above; the repository as a whole is distributed for
+non-commercial use.
+
+MiSTer integration
+------------------
+The MiSTer Atari800 project (Sorgelig and contributors) supplied the
+integration, the PokeyMAX/POKEY blocks and the top-level structure.
+See https://github.com/MiSTer-devel/Atari800_MiSTer and the headers of the
+individual files.
+
+Altirra OS and Altirra BASIC (built into the core)
+--------------------------------------------------
+Copyright (c) 2017-2026 Avery Lee, All Rights Reserved.
+
+Copying and distribution of this file, with or without modification, are
+permitted in any medium without royalty provided the copyright notice and this
+notice are preserved.  This file is offered as-is, without any warranty.
+
+The OS/BASIC images are the Altirra ROM set (XL/XE and 8K BASIC).  They are
+not relicensed by this repository.  See https://www.virtualdub.org/altirra.html.
+
+Shared Karabas FPGA modules (`modules/`, git submodule)
+------------------------------------------------------
+https://github.com/andykarpov/karabas-go-modules
+Used as a pinned submodule; see the submodule's own notices.
+
+Karabas firmware and tools
+--------------------------
+`tools/karabas.py`, `tools/make_core.py` follow the Karabas Go project:
+https://github.com/andykarpov/karabas-go-firmware
+The firmware itself is not part of this repository.
+
+ROM data
+--------
+No Atari XL OS/BASIC ROM files are shipped in this repository.  The core uses
+the Altirra ROM set compiled into BRAM.  Third-party game images (`.xex`,
+`.atr`) are not part of the repository.

@@ -1,0 +1,135 @@
+{
+    "id": "atari800",
+    "name": "Atari 800XL",
+    "build": "26111730",
+    "visible": true,
+    "type": "osd",
+    "order": 20,
+    "eeprom_bank": 255,
+    "roms": [],
+    "boards": {
+        "go": {
+            "bitstream": "karabas_go.bin",
+            "link": 2
+        },
+        "minig": {
+            "bitstream": "karabas_minig.bin",
+            "link": 2
+        }
+    },
+    "osd": [
+        {
+            "type": "T",
+            "key": "reset",
+            "name": "Reset",
+            "hotkey": "F12"
+        },
+        {
+            "type": "M",
+            "name": "System",
+            "open": 2
+        },
+        {
+            "type": "M",
+            "name": "About",
+            "open": 1
+        },
+        {
+            "type": "P",
+            "name": "Atari 800XL FPGA: Mark Watson",
+            "page": 1
+        },
+        {
+            "type": "P",
+            "name": "MiSTer: Sorgelig et al.",
+            "page": 1
+        },
+        {
+            "type": "P",
+            "name": "Karabas port",
+            "page": 1
+        },
+        {
+            "type": "S",
+            "name": "RAM",
+            "options": [
+                "64K",
+                "128K",
+                "320K Compy",
+                "320K Rambo",
+                "576K Compy",
+                "576K Rambo",
+                "1088K"
+            ],
+            "default": 0,
+            "index": 1,
+            "page": 2
+        },
+        {
+            "type": "S",
+            "name": "Video",
+            "options": [
+                "PAL",
+                "NTSC"
+            ],
+            "default": 0,
+            "index": 2,
+            "page": 2
+        },
+        {
+            "type": "S",
+            "name": "Joystick swap",
+            "options": [
+                "Off",
+                "On"
+            ],
+            "default": 0,
+            "index": 3,
+            "page": 2
+        },
+        {
+            "type": "S",
+            "name": "Cartridge type",
+            "options": [
+                "Off",
+                "8K",
+                "16K",
+                "32K Mega",
+                "64K Williams",
+                "128K Williams",
+                "XEGS 32K",
+                "XEGS 64K",
+                "XEGS 128K",
+                "Mega 256K"
+            ],
+            "default": 0,
+            "index": 4,
+            "page": 2
+        },
+        {
+            "type": "T",
+            "key": "cold_reset",
+            "name": "Cold reset",
+            "hotkey": "Alt+F12",
+            "index": 5,
+            "page": 2
+        },
+        {
+            "type": "F",
+            "name": "Cartridge",
+            "slot": 1,
+            "extensions": ".car,.rom,.bin",
+            "dir": "/atari800",
+            "page": 2
+        },
+        {
+            "type": "F",
+            "name": "Disk",
+            "slot": 0,
+            "extensions": ".atr,.xex",
+            "dir": "/atari800",
+            "page": 2
+        }
+    ],
+    "link": 2
+}

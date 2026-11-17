@@ -31,7 +31,11 @@ module atari_video #(
 	// far right edge falls into the overscan a TV would cut anyway.
 	parameter [9:0]  SRC_X0   = 10'd78,
 	parameter [9:0]  SRC_W    = 10'd356,
-	parameter [9:0]  PIC_LEFT = 10'd4
+	parameter [9:0]  PIC_LEFT = 10'd4,
+	// HDMI boards need a front porch before hsync for the data island trigger
+	// (see the comment at HS_START below); VGA keeps the original position.
+	parameter [9:0]  HS_START = 10'd816,
+	parameter [9:0]  HS_END   = 10'd888
 ) (
 	input wire        clk,
 	input wire        rst,
@@ -59,8 +63,12 @@ module atari_video #(
 localparam H_TOTAL   = 912;
 localparam H_ACTIVE  = 720;
 localparam H_START   = 96;                 // first visible output pixel
-localparam HS_START  = 816;
-localparam HS_END    = 888;
+// 72-pixel hsync at the end of the line and a 24-pixel front porch (816..839).
+// The front porch is required by the HDMI data island trigger in zhdmi_signaling:
+// it starts an island 4 cycles after DE falls and resets its blank counter on the
+// hsync rising edge.  With the sync at 816 (no front porch) that counter reset
+// cancelled the trigger, so no audio islands were sent at all (video was fine).
+// Mini/MiniG (HDMI) override HS_START/HS_END to 840/912; Go (VGA) keeps 816/888.
 localparam SRC_PIX   = 456;                // high-resolution pixels per source line
 localparam PIC_START = H_START + PIC_LEFT; // first picture output pixel
 localparam PIC_END   = PIC_START + 2*SRC_W;

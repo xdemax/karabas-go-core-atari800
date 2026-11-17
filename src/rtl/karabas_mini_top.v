@@ -433,6 +433,8 @@ wire cold_reset = |cold_reset_cnt;
 
 wire any_reset   = areset | sw_reset | cold_reset | ld_loading;
 wire power_reset = areset | cold_reset | ld_loading;
+// No disk mounted: reset must cold-start the OS, or the XEX DOSVEC runs the demo again.
+wire force_cold  = ~atr_ready & (sw_reset | cold_reset);
 
 // ------------------------------------------------------------------ ATR image loader
 atari_atr_loader atr_loader (
@@ -511,11 +513,15 @@ wire        vid_hs, vid_vs, vid_de;
 wire        osd_hs, osd_vs, osd_de;
 wire signed [17:0] aud_l, aud_r;
 
-atari800_machine machine (
+atari800_machine #(
+	.HS_START (10'd840),
+	.HS_END   (10'd912)
+) machine (
 	.clk            (clk_sys),
 	.clk_vid        (clk_sys),
 	.reset          (any_reset),
 	.power_reset    (power_reset),
+	.force_cold     (force_cold),
 	.reset_host     (areset),
 	.pause          (1'b0),
 	.kb_scancode    (kb_scancode),
@@ -567,8 +573,9 @@ kg_l2_osd_overlay overlay(
 );
 
 // ------------------------------------------------------------------ audio sampler
-// Audio sample: 48 kHz strobe, held for the sigma-delta DACs and HDMI sampler.
-reg [8:0] aud_acc = 9'd0;
+// The sigma-delta DACs of Mini rev A-F are updated at the same 55.8 kHz frame rate;
+// the HDMI wrapper needs its own 48 kHz sample on the 595-clock grid it uses.
+reg [8:0]  aud_acc = 9'd0;
 reg [31:0] aud_hold = 32'd0;
 always @(posedge clk_sys) begin
 	if (aud_acc == 9'd511) begin
@@ -579,6 +586,17 @@ always @(posedge clk_sys) begin
 		aud_acc <= aud_acc + 9'd1;
 end
 
+reg [9:0]  aud_hdmi_acc = 10'd0;
+reg [31:0] aud_hdmi = 32'd0;
+always @(posedge clk_sys) begin
+	if (aud_hdmi_acc == 10'd594) begin
+		aud_hdmi_acc <= 10'd0;
+		aud_hdmi <= {aud_l[17], aud_l[17:3], aud_r[17], aud_r[17:3]};
+	end
+	else
+		aud_hdmi_acc <= aud_hdmi_acc + 10'd1;
+end
+
 audio_peaks #(.PERIOD_BITS(19)) matrix_peaks(
 	.clk      (clk_host),
 	.audio_l  (aud_hold[31:16]),
@@ -587,19 +605,39 @@ audio_peaks #(.PERIOD_BITS(19)) matrix_peaks(
 	.cmd      (matrix_cmd)
 );
 
-// ------------------------------------------------------------------ HDMI (no FT812, stable DCM path)
-atari_hdmi #(.SAMPLERATE(48000), .CLKRATE(28571400), .INPUT_REG(1)) hdmi (
-	.clk      (clk_vid),
-	.reset    (areset),
-	.rgb      (osd_rgb),
-	.hs       (osd_hs),
-	.vs       (osd_vs),
-	.de       (osd_de),
-	.audio_en (1'b1),        // force HDMI audio for bring-up; dvi_only was muting it
-	.audio_l  (aud_hold[31:16]),
-	.audio_r  (aud_hold[15:0]),
-	.tmds_p   (TMDS_P),
-	.tmds_n   (TMDS_N)
+// ------------------------------------------------------------------ HDMI
+// The proven Karabas FT812 wrapper, as on Mini G and C64: it takes the 48 kHz
+// sample and produces the HDMI audio packets.  The local atari_hdmi was silent.
+wire ft_clk_ibufg, ft_clk_int;
+IBUFG ibufg_ft_clk(.I(FT_CLK), .O(ft_clk_ibufg));
+BUFG bufg_ft_clk(.I(ft_clk_ibufg), .O(ft_clk_int));
+
+kg_hdmi_ft #(.SAMPLERATE(48000), .CLKRATE(28571400), .REF_MHZ(8'd28)) hdmi_top(
+	.clk            (ft_clk_int),
+	.clk_ref        (clk_vid),
+	.clk_ref_pll    (clk_vid_pll),
+	.clk_8          (clk_8mhz),
+	.reset          (areset),
+
+	.vga_rgb        (osd_rgb),
+	.vga_hs         (vid_hs),
+	.vga_vs         (vid_vs),
+	.vga_de         (vid_de),
+
+	.ft_rgb         ({VGA_R, VGA_G, VGA_B}),
+	.ft_hs          (VGA_HS),
+	.ft_vs          (VGA_VS),
+	.ft_de          (FT_DE),
+
+	.ft_sel         (1'b0),
+	.audio_en       (1'b1),
+	.audio_l        (aud_hdmi[31:16]),
+	.audio_r        (aud_hdmi[15:0]),
+
+	.tmds_p         (TMDS_P),
+	.tmds_n         (TMDS_N),
+
+	.freq           ()
 );
 
 // ------------------------------------------------------------------ sigma-delta audio (Mini rev A-F)

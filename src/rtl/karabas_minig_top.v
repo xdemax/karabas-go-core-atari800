@@ -484,6 +484,9 @@ wire cold_reset = |cold_reset_cnt;
 
 wire any_reset   = areset | sw_reset | cold_reset | ld_loading; // RESET_N
 wire power_reset = areset | cold_reset | ld_loading;            // POWER_RESET (cold)
+// With no disk mounted, a reset must cold-start the OS: the XEX loader sets
+// DOSVEC, and a warm start would run the demo again instead of the blue screen.
+wire force_cold  = ~atr_ready & (sw_reset | cold_reset);
 
 // ------------------------------------------------------------------ ATR image loader
 // Slot 1 is the .atr.  The image is copied into the free SRAM at 0x300000;
@@ -521,11 +524,15 @@ wire        vid_hs, vid_vs, vid_de;
 wire        osd_hs, osd_vs, osd_de;
 wire signed [17:0] aud_l, aud_r;
 
-atari800_machine machine (
+atari800_machine #(
+	.HS_START (10'd840),
+	.HS_END   (10'd912)
+) machine (
 	.clk            (clk_sys),
 	.clk_vid        (clk_sys),
 	.reset          (any_reset),
 	.power_reset    (power_reset),
+	.force_cold     (force_cold),
 	.reset_host     (areset),
 	.pause          (1'b0),
 	.kb_scancode    (kb_scancode),
@@ -761,10 +768,12 @@ kg_l2_osd_overlay overlay(
 );
 
 // ------------------------------------------------------------------ audio sampler
-// One sample per PCM5102 LRCK frame: kg_pcm5102 with DIV_BITS = 2 makes LRCK = clk / 512, i.e.
-// 55.8 kHz at 28.571 MHz.  Updating aud_hold at that rate keeps the DAC pitch correct; the HDMI
-// sampler takes its own 48 kHz strobe from this held value.
-reg [8:0] aud_acc = 9'd0;
+// Two samples from the same aud_l/r:
+//  - aud_hold at the I2S LRCK rate (kg_pcm5102 DIV_BITS=2: clk / 512 = 55.8 kHz),
+//    so every DAC frame has a fresh sample and the jack stays clean;
+//  - aud_hdmi at 48 kHz on the same 595-clock grid (28.571 MHz / 48 kHz = 595) that
+//    kg_hdmi_ft uses internally, so the HDMI gets exactly one new sample per packet.
+reg [8:0]  aud_acc = 9'd0;
 reg [31:0] aud_hold = 32'd0;
 always @(posedge clk_sys) begin
 	if (aud_acc == 9'd511) begin
@@ -773,6 +782,17 @@ always @(posedge clk_sys) begin
 	end
 	else
 		aud_acc <= aud_acc + 9'd1;
+end
+
+reg [9:0]  aud_hdmi_acc = 10'd0;
+reg [31:0] aud_hdmi = 32'd0;
+always @(posedge clk_sys) begin
+	if (aud_hdmi_acc == 10'd594) begin
+		aud_hdmi_acc <= 10'd0;
+		aud_hdmi <= {aud_l[17], aud_l[17:3], aud_r[17], aud_r[17:3]};
+	end
+	else
+		aud_hdmi_acc <= aud_hdmi_acc + 10'd1;
 end
 
 audio_peaks #(.PERIOD_BITS(19)) matrix_peaks(
@@ -808,9 +828,9 @@ kg_hdmi_ft #(.SAMPLERATE(48000), .CLKRATE(28571400), .REF_MHZ(8'd28)) hdmi_top(
 	.ft_de          (FT_DE),
 
 	.ft_sel         (1'b0),
-	.audio_en       (~dvi_only),
-	.audio_l        (aud_hold[31:16]),
-	.audio_r        (aud_hold[15:0]),
+	.audio_en       (1'b1),
+	.audio_l        (aud_hdmi[31:16]),
+	.audio_r        (aud_hdmi[15:0]),
 
 	.tmds_p         (TMDS_P),
 	.tmds_n         (TMDS_N),

@@ -1,51 +1,56 @@
 # Сохранённые сборки и релизы
 
-## Текущая ветка (build 26111730)
+## Текущая ветка (build 26111740)
 
 | Файл | md5 | Что |
 |---|---|---|
-| `src/atari800.kg` | `08ee3e45f1c13fab181bbc3cf61c3187` | Go + Mini rev A-F + MiniG |
-| `src/karabas_go.bin` | `200fbea4af857158491986e363eab880` | Go, LUT 53%, timing 0 |
-| `src/karabas_mini.bin` | `8c15fb331fa3831c19177d9e97c6ccad` | Mini rev A-F, LUT 61%, timing 0 |
-| `src/karabas_minig.bin` | `6ceb9961c3dd2e2a3be19fb61722cb12` | MiniG (rev G), LUT 63%, timing 0 |
+| `src/atari800.kg` | `4f0c1f7d784dba10ce73d5abd8b41bb6` | Go + Mini rev A-F + MiniG, build 26111740 |
+| `src/karabas_go.bin` | `5357f67753b654d4a9c916509056e5cc` | Go, LUT 53%, slices 76%, timing 0 |
+| `src/karabas_mini.bin` | `861fc40c6ca3b6a2c9153c92528be3ee` | Mini rev A-F, LUT 59%, slices 81%, timing 0 |
+| `src/karabas_minig.bin` | `680c4a367d96eeb16b52b2eecaa2acba` | MiniG (rev G), LUT 63%, slices 84%, timing 0 |
 
 В `.kg` три битстрима:
 
 | Board | id | size |
 |---|---:|---:|
-| `go` | 2 | `0x0B4A72` |
-| `mini` (rev A-F) | 4 | `0x0B423E` |
-| `minig` (rev G) | 8 | `0x0B418E` |
+| `go` | 2 | `0x0B4C56` |
+| `mini` (rev A-F) | 4 | `0x0B4070` |
+| `minig` (rev G) | 8 | `0x0B402A` |
 
 Firmware выбирает нужный по `HW_ID`; нужна прошивка 26111315+ (link v2).
 
-## Ожидает проверки (фикс HDMI/джойстиков)
+## Проверено на железе
 
 | Файл | md5 | Что |
 |---|---|---|
-| `src/atari800.kg` | `28af1fdfdab6f5d03c8d1b5b105d66e0` | новый MiniG `a8662090` + старые Go/Mini |
-| `src/karabas_minig.bin` | `a8662090662ea128fa8ede2b7b780cf8` | HDMI `kg_hdmi_ft` + прямой joystick map |
+| `atari800.kg` (проверенная сборка, build 26111730) | `e54381401477436eaf085b7d6c666210` | MiniG `680c4a36`: HDMI-звук, джек, ATR, eject+reset, видео |
+| `src/karabas_minig.bin` | `680c4a367d96eeb16b52b2eecaa2acba` | тот же MiniG, что в релизном `.kg` |
 
-Релиз `v26111740` — после проверки на Mini rev G; Go/Mini будут
-пересобраны тем же деревом.
-
-## Последняя подтверждённая на железе
-
-| Файл | md5 | Что |
-|---|---|---|
-| `atari800.kg` (MiniG, video B + `$BF`) | `71e95c5cb688911dea89eb688944d812` | Pong, Miner 2049er, GAMES002.ATR |
-| `karabas_minig.bin` | `de230d8f64131af45ed6e2dfe91c0110` | то же |
-
-`6ceb9961` (текущий MiniG) добавляет вертикаль `K=584` и keyboard FIFO;
-на железе ещё не подтверждён.
+Релизный `atari800.kg` `4f0c1f7d` содержит **тот же** MiniG `680c4a36`;
+изменены только Go и Mini rev A-F (собраны, на железе не проверялись).
 
 ## Релизы
 
-**v26111730** — https://github.com/xdemax/karabas-go-core-atari800/releases/tag/v26111730
+### v26111740 (Latest)
 
-Ассет: `atari800.kg` (2,217,046 байт, md5 `08ee3e45f1c13fab181bbc3cf61c3187`).
-Проверено на Mini rev G: Pong, Miner 2049er, GAMES002.ATR, вертикаль и
-клавиатура. Mini rev A-F и Go собраны, но на железе не проверялись.
+https://github.com/xdemax/karabas-go-core-atari800/releases/tag/v26111740
+
+Ассет: `atari800.kg` (2,216,710 байт, md5
+`4f0c1f7d784dba10ce73d5abd8b41bb6`).
+
+- HDMI-звук: front porch 24 px (data islands), `kg_hdmi_ft`, отдельный
+  48-кГц сэмпл; джек на 55.8 кГц без шума.
+- Eject + reset: cold-start ОС без диска (`force_cold`), синий экран.
+- Джойстики: прямой Karabas → FRLDU.
+- Проверено на MiniG rev G. Go / Mini rev A-F собраны, не проверялись.
+
+### v26111730 (historical)
+
+https://github.com/xdemax/karabas-go-core-atari800/releases/tag/v26111730
+
+Ассет: `atari800.kg` (md5 `08ee3e45f1c13fab181bbc3cf61c3187`).
+В этой сборке были известные баги: молчал HDMI-звук на MiniG и были
+перепутаны right/down у джойстиков. Заменён на v26111740.
 
 ## Артефакты
 

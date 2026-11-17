@@ -1,7 +1,7 @@
 {
     "id": "atari800",
     "name": "Atari 800XL",
-    "build": "26111730",
+    "build": "26111740",
     "visible": true,
     "type": "osd",
     "order": 20,

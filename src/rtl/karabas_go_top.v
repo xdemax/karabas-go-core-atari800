@@ -478,6 +478,8 @@ wire [24:0] dbg_base;
 wire [15:0] dbg_addr, dbg_data;
 wire any_reset   = areset | sw_reset | cold_reset | ld_loading;
 wire power_reset = areset | cold_reset | ld_loading;
+// No disk mounted: reset must cold-start the OS, or the XEX DOSVEC runs the demo again.
+wire force_cold  = ~atr_ready & (sw_reset | cold_reset);
 
 // ------------------------------------------------------------------ ATR image loader
 atari_atr_loader atr_loader (
@@ -517,6 +519,7 @@ atari800_machine machine (
 	.clk_vid        (clk_vid),
 	.reset          (any_reset),
 	.power_reset    (power_reset),
+	.force_cold     (force_cold),
 	.reset_host     (areset),
 	.pause          (1'b0),
 	.kb_scancode    (kb_scancode),
@@ -650,10 +653,9 @@ kg_l2_osd_overlay overlay(
 );
 
 // ------------------------------------------------------------------ audio sampler
-// One sample per PCM5102 LRCK frame: kg_pcm5102 with DIV_BITS = 2 makes LRCK = clk / 512, i.e.
-// 55.8 kHz at 28.571 MHz.  Updating aud_hold at that rate keeps the DAC pitch correct; the HDMI
-// sampler takes its own 48 kHz strobe from this held value.
-reg [8:0] aud_acc = 9'd0;
+// One sample per PCM5102 LRCK frame: kg_pcm5102 with DIV_BITS = 2 makes LRCK = clk / 512,
+// i.e. 55.8 kHz at 28.571 MHz.  Every DAC frame gets a fresh sample.
+reg [8:0]  aud_acc = 9'd0;
 reg [31:0] aud_hold = 32'd0;
 always @(posedge clk_sys) begin
 	if (aud_acc == 9'd511) begin

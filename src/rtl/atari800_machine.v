@@ -14,11 +14,16 @@
 --
 -------------------------------------------------------------------------------------------------------------------*/
 
-module atari800_machine (
+module atari800_machine #(
+	// HDMI boards need a front porch for the data island (audio) trigger.
+	parameter [9:0] HS_START = 10'd816,
+	parameter [9:0] HS_END   = 10'd888
+) (
 	input wire        clk,
 	input wire        clk_vid,          // video pixel clock (VGA/HDMI)
 	input wire        reset,          // active high: any reset (warm or cold)
 	input wire        power_reset,    // active high: cold reset (POWER_RESET), with reset
+	input wire        force_cold,     // no disk mounted: force an OS cold start on reset
 	input wire        reset_host,     // power-on only: the keyboard state survives F12
 	input wire        pause,
 
@@ -131,7 +136,7 @@ end
 wire [5:0]  keyboard_scan;
 wire [1:0]  keyboard_response;
 wire        consol_start, consol_select, consol_option;
-wire        cold_clear = power_reset | (reset & consol_option);   // cold reset or Option+F12: OS cold start
+wire        cold_clear = power_reset | force_cold | (reset & consol_option);   // cold reset, Option+F12, or no disk
 wire [11:0] fkeys;
 wire        freezer_activate;
 wire [511:0] ps2_keys;
@@ -325,7 +330,10 @@ atari_sram sram (
 );
 
 // ------------------------------------------------------------------ video
-atari_video video (
+atari_video #(
+	.HS_START (HS_START),
+	.HS_END   (HS_END)
+) video (
 	.clk      (clk),
 	.rst      (reset),
 	.pixce    (video_pixce),

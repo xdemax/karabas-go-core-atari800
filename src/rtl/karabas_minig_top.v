@@ -783,19 +783,39 @@ audio_peaks #(.PERIOD_BITS(19)) matrix_peaks(
 	.cmd      (matrix_cmd)
 );
 
-// ------------------------------------------------------------------ HDMI (no FT812, stable DCM path)
-atari_hdmi #(.SAMPLERATE(48000), .CLKRATE(28571400), .INPUT_REG(1)) hdmi (
-	.clk      (clk_vid),
-	.reset    (areset),
-	.rgb      (osd_rgb),
-	.hs       (osd_hs),
-	.vs       (osd_vs),
-	.de       (osd_de),
-	.audio_en (1'b1),        // force HDMI audio for bring-up; dvi_only was muting it
-	.audio_l  (aud_hold[31:16]),
-	.audio_r  (aud_hold[15:0]),
-	.tmds_p   (TMDS_P),
-	.tmds_n   (TMDS_N)
+// ------------------------------------------------------------------ HDMI
+// Use the proven Karabas FT812 HDMI wrapper (the same path as the C64 MiniG)
+// instead of the local DCM wrapper: the latter was silent on HDMI audio.
+wire ft_clk_ibufg, ft_clk_int;
+IBUFG ibufg_ft_clk(.I(FT_CLK), .O(ft_clk_ibufg));
+BUFG bufg_ft_clk(.I(ft_clk_ibufg), .O(ft_clk_int));
+
+kg_hdmi_ft #(.SAMPLERATE(48000), .CLKRATE(28571400), .REF_MHZ(8'd28)) hdmi_top(
+	.clk            (ft_clk_int),
+	.clk_ref        (clk_vid),
+	.clk_ref_pll    (clk_vid_pll),
+	.clk_8          (clk_8mhz),
+	.reset          (areset),
+
+	.vga_rgb        (osd_rgb),
+	.vga_hs         (vid_hs),
+	.vga_vs         (vid_vs),
+	.vga_de         (vid_de),
+
+	.ft_rgb         ({VGA_R, VGA_G, VGA_B}),
+	.ft_hs          (VGA_HS),
+	.ft_vs          (VGA_VS),
+	.ft_de          (FT_DE),
+
+	.ft_sel         (1'b0),
+	.audio_en       (~dvi_only),
+	.audio_l        (aud_hold[31:16]),
+	.audio_r        (aud_hold[15:0]),
+
+	.tmds_p         (TMDS_P),
+	.tmds_n         (TMDS_N),
+
+	.freq           ()
 );
 
 // ------------------------------------------------------------------ I2S DAC (PCM5102)

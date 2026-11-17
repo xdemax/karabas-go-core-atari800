@@ -158,19 +158,14 @@ ps2_to_atari800 #(.ps2_enable(0), .direct_enable(1)) keyboard (
 // ------------------------------------------------------------------ joysticks
 // MiSTer JOY bits: 0=right 1=left 2=down 3=up 4=fire 5=B 6=C.
 // Karabas joy bits: 1=up 2=down 3=left 4=right 6=A 7=B 8=C.
-function [6:0] joy_map;
-	input [12:0] k;
-	begin
-		joy_map = {k[8], k[7], k[6], k[1], k[4], k[3], k[2]};
-	end
-endfunction
-
-wire [6:0] j1 = sw_joy_swap ? joy_map(joy_r) : joy_map(joy_l);
-wire [6:0] j2 = sw_joy_swap ? joy_map(joy_l) : joy_map(joy_r);
-
-// FRLDU, 0 = pressed
-wire [4:0] joy1_n = ~{j1[4], j1[0], j1[1], j1[2], j1[3]};
-wire [4:0] joy2_n = ~{j2[4], j2[0], j2[1], j2[2], j2[3]};
+// Karabas joystick bits (firmware/kg_l2_hid): 0 connected, 1 up, 2 down,
+// 3 left, 4 right, 5 start, 6 A (fire), 7 B, 8 C, ...
+// The Atari core wants JOY1_n/JOY2_n in FRLDU order, 0 = pressed:
+// bit 4 fire, 3 right, 2 left, 1 down, 0 up.
+wire [12:0] k1 = sw_joy_swap ? joy_r : joy_l;
+wire [12:0] k2 = sw_joy_swap ? joy_l : joy_r;
+wire [4:0] joy1_n = ~{k1[6], k1[4], k1[3], k1[2], k1[1]};
+wire [4:0] joy2_n = ~{k2[6], k2[4], k2[3], k2[2], k2[1]};
 
 // ------------------------------------------------------------------ atari800core
 wire [7:0]  video_r, video_g, video_b;

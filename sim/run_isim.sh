@@ -115,8 +115,24 @@ EOF
 		run_one_plain "$D" tb_video_compare
 		echo "frames: $D/frame_a.ppm $D/frame_b.ppm"
 		;;
+	machine)
+		D=/tmp/opencode/isim_machine
+		rm -rf "$D"; mkdir -p "$D"
+		cp -a "$ROOT/src" "$D/src"
+		cp -a "$ROOT/modules" "$D/modules"
+		cp "$ROOT/sim/tb_atari_machine.v" "$D/src/"
+		if [ -n "${ATR:-}" ]; then
+			python3 "$ROOT/sim/gen_atr_hex.py" "$ATR" "$D/src/numen_a.hex"
+		else
+			cp "$ROOT/sim/numen_a.hex" "$D/src/numen_a.hex"
+		fi
+		cp "$ROOT/src/karabas_minig.prj" "$D/src/tb.prj"
+		echo 'verilog work "tb_atari_machine.v"' >> "$D/src/tb.prj"
+		run_one "$D/src" tb_atari_machine
+		echo "audio: $D/src/audio.txt"
+		;;
 	*)
-		echo "usage: $0 sio|atr|xex|video|video_compare" >&2
+		echo "usage: $0 sio|atr|xex|video|video_compare|machine" >&2
 		exit 2
 		;;
 esac

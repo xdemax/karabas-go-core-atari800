@@ -5,15 +5,16 @@
 видео/аудио-обвязка и UCF. Один `atari800.kg` содержит битстримы `go`, `mini` и `minig`;
 firmware выбирает нужный по `HW_ID`.
 
-## Статус (2026-11-17, build 26111730)
+## Статус (2026-11-21, build 26112100 — fix timing)
 
-- **Mini G (rev G, `minig`)** — основной целевой стенд. Работают: ATR в Disk-слоте, прямой
-  `.xex` в Disk-слоте, видео 720×576 PAL, клавиатура, джойстики, OSD,
-  Altirra OS/BASIC, картриджи, SIO 1050.
-  Проверено на релизной сборке `08ee3e45`: `Pong.xex`, `Miner 2049er.xex`,
-  `GAMES002.ATR`, вертикаль и клавиатура.
-- **Go** — собран из того же RTL и включён в `.kg`; на железе не проверялся
-  (платы нет).
+- **Go и Mini G (rev G)** — проверены на железе: Numen на деревьях без
+  глитчей, видео 720×576 PAL, ATR/XEX, клавиатура, джойстики, OSD,
+  Altirra OS/BASIC, SIO 1050.
+- **CPU** — исправлен `THROTTLE_COUNT_6502`: `6'd15` был 8x turbo, теперь
+  `6'd1` = 1x, как в MiSTer. Это была причина «рваного» page flip в Numen.
+- **Видео** — фазовый фикс `atari_video`: pair check 0, устойчивость к
+  пропаже/лишней синхре, DE 576, RGB чёрный вне 48..527. Геометрия:
+  вертикально 48..527, normal playfield по центру (±2.5 px).
 - **Mini rev A-F (`mini`)** — собран из того же RTL (ATR/XEX, видео, клавиатура,
   sigma-delta audio); на железе не проверялся.
 - **XEX** — synthetic-ATR + 6502-загрузчик, запускается после coldstart,
@@ -27,8 +28,9 @@ firmware выбирает нужный по `HW_ID`.
 - **Не сделано:** FPGA-DMA после coldstart (для скорости загрузки XEX),
   NTSC на железе, VBXE, PBI/HDD, запись диска.
 
-Точные хэши — в `doc/STATUS_2026-11-17.md`. Релиз: **v26111730** —
-https://github.com/xdemax/karabas-go-core-atari800/releases/tag/v26111730
+Точные хэши — в `doc/STATUS_2026-11-21_FIX_TIMING.md`. Релиз:
+**v26112100 — fix timing** —
+https://github.com/xdemax/karabas-go-core-atari800/releases/tag/v26112100
 
 ## Что внутри
 

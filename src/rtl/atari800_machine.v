@@ -17,7 +17,9 @@
 module atari800_machine #(
 	// HDMI boards need a front porch for the data island (audio) trigger.
 	parameter [9:0] HS_START = 10'd816,
-	parameter [9:0] HS_END   = 10'd888
+	parameter [9:0] HS_END   = 10'd888,
+	// MiniG: dual-clock 720x576 standard output (27.027 MHz video clock).
+	parameter       VIDEO27  = 0
 ) (
 	input wire        clk,
 	input wire        clk_vid,          // video pixel clock (VGA/HDMI)
@@ -292,7 +294,10 @@ atari800core_simple_sdram #(
 	.VBXE_PALETTE_COLOR     (7'd0),
 
 	.HALT                   (pause),
-	.THROTTLE_COUNT_6502    (6'd15),
+	// MiSTer CPU_SPEEDS = {1, 2, 4, 8, 16, ...} for 1x/2x/4x/8x/16x.
+	// This is a multiplier bitmask, not cycle_length-1.  6'd15 selects 8x
+	// turbo and breaks the raster/page-flip timing used by Numen's Duke engine.
+	.THROTTLE_COUNT_6502    (6'd1),
 	.emulated_cartridge_select  (cart_sel),
 	.emulated_cartridge2_select (8'd0),
 	.EMU_FLASH_REQUEST      (),
@@ -330,28 +335,56 @@ atari_sram sram (
 );
 
 // ------------------------------------------------------------------ video
-atari_video #(
-	.HS_START (HS_START),
-	.HS_END   (HS_END)
-) video (
-	.clk      (clk),
-	.rst      (reset),
-	.pixce    (video_pixce),
-	.r_i      (video_r),
-	.g_i      (video_g),
-	.b_i      (video_b),
-	.hblank   (core_hblank),
-	.vblank   (core_vblank),
-	.hsync_i  (video_hs),
-	.vsync_i  (video_vs),
-	.pal      (pal),
-	.r_o      (rgb[23:16]),
-	.g_o      (rgb[15:8]),
-	.b_o      (rgb[7:0]),
-	.hs_o     (hs),
-	.vs_o     (vs),
-	.de_o     (de)
-);
+generate
+if (VIDEO27) begin : video27
+	atari_video_27 #(
+		.H_SYNC_START (HS_START),
+		.H_SYNC_END   (HS_END)
+	) video (
+		.clk      (clk),
+		.clk_vid  (clk_vid),
+		.rst      (reset_host),
+		.pixce    (video_pixce),
+		.r_i      (video_r),
+		.g_i      (video_g),
+		.b_i      (video_b),
+		.hblank   (core_hblank),
+		.vblank   (core_vblank),
+		.hsync_i  (video_hs),
+		.vsync_i  (video_vs),
+		.pal      (pal),
+		.r_o      (rgb[23:16]),
+		.g_o      (rgb[15:8]),
+		.b_o      (rgb[7:0]),
+		.hs_o     (hs),
+		.vs_o     (vs),
+		.de_o     (de)
+	);
+end else begin : video28
+	atari_video #(
+		.HS_START (HS_START),
+		.HS_END   (HS_END)
+	) video (
+		.clk      (clk),
+		.rst      (reset),
+		.pixce    (video_pixce),
+		.r_i      (video_r),
+		.g_i      (video_g),
+		.b_i      (video_b),
+		.hblank   (core_hblank),
+		.vblank   (core_vblank),
+		.hsync_i  (video_hs),
+		.vsync_i  (video_vs),
+		.pal      (pal),
+		.r_o      (rgb[23:16]),
+		.g_o      (rgb[15:8]),
+		.b_o      (rgb[7:0]),
+		.hs_o     (hs),
+		.vs_o     (vs),
+		.de_o     (de)
+	);
+end
+endgenerate
 
 // ------------------------------------------------------------------ audio
 // The POKEY/GTIA output is two's complement 16 bit.  Remove the DC component in the unsigned domain

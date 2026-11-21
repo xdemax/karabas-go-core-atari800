@@ -33,6 +33,7 @@ vhdl work "../modules/rtl/video/hdmi/zhdmi_signaling.vhd"
 vhdl work "../modules/rtl/video/hdmi/zhdmi_tx.vhd"
 
 verilog work "rtl/atari800_machine.v"
+verilog work "rtl/atari_video_27.v"
 verilog work "rtl/atari_video.v"
 verilog work "rtl/atari_atr_loader.v"
 verilog work "rtl/atari_sio_disk.v"

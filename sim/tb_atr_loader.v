@@ -136,22 +136,22 @@ initial begin
 	#200 reset_host = 1'b0;
 	wait (atr_ready === 1'b1);
 	#1000;
-	if (atr_ssize !== 16'd128) begin
+	if (atr_ssize != 16'd128) begin
 		$display("ERROR ssize=%0d", atr_ssize); errors = errors + 1;
 	end
-	if (atr_scount !== 32'd720) begin
+	if (atr_scount != 32'd720) begin
 		$display("ERROR scount=%0d", atr_scount); errors = errors + 1;
 	end
-	if (mem[0] !== 8'h96 || mem[1] !== 8'h02) begin
+	if (mem[0] != 8'h96 || mem[1] != 8'h02) begin
 		$display("ERROR header %h %h", mem[0], mem[1]); errors = errors + 1;
 	end
-	if (mem[16] !== 8'd16) begin
+	if (mem[16] != 8'd16) begin
 		$display("ERROR mem16=%h", mem[16]); errors = errors + 1;
 	end
-	if (mem[512+16] !== ((512+16) & 255)) begin
+	if (mem[512+16] != ((512+16) & 255)) begin
 		$display("ERROR mem528=%h", mem[512+16]); errors = errors + 1;
 	end
-	if (wr_count !== 181*512) begin
+	if (wr_count != 181*512) begin
 		$display("ERROR wr_count=%0d want %0d", wr_count, 181*512); errors = errors + 1;
 	end
 	if (errors == 0)

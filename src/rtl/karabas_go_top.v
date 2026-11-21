@@ -514,7 +514,10 @@ wire [23:0] vid_rgb, osd_rgb;
 wire        vid_hs, vid_vs, vid_de;
 wire signed [17:0] aud_l, aud_r;
 
-atari800_machine machine (
+atari800_machine #(
+	.HS_START (10'd744),
+	.HS_END   (10'd808)
+) machine (
 	.clk            (clk_sys),
 	.clk_vid        (clk_vid),
 	.reset          (any_reset),

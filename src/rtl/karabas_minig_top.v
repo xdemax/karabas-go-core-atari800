@@ -525,8 +525,8 @@ wire        osd_hs, osd_vs, osd_de;
 wire signed [17:0] aud_l, aud_r;
 
 atari800_machine #(
-	.HS_START (10'd840),
-	.HS_END   (10'd912)
+	.HS_START (10'd744),
+	.HS_END   (10'd808)
 ) machine (
 	.clk            (clk_sys),
 	.clk_vid        (clk_sys),
